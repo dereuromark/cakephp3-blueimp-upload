@@ -6,23 +6,25 @@ use Cake\View\View;
 
 /**
  * BlueimpUpload helper
+ *
+ * @property \Cake\View\Helper\HtmlHelper $Html
+ * @property \Cake\View\Helper\FormHelper $Form
  */
 class BlueimpUploadHelper extends Helper
 {
     public $helpers = ['Html', 'Form'];
-    
+
     /**
      * Default configuration.
      *
      * @var array
      */
-    protected $_defaultConfig = [];
+    protected $_defaultConfig = [
+		'block' => true
+	];
 
-    public function chunked($upload_id, $options = [])
-    {
-//         debug($this->request);
-        
-        $default_options = [
+    public function chunked($upload_id, $options = []) {
+		$defaults = [
             'upload_url'                     => null,
             'input_file_text'                => __d('cakephp_blueimp_upload', 'Upload'),
             'success_message'                => __d('cakephp_blueimp_upload', 'Upload successful'),
@@ -33,47 +35,46 @@ class BlueimpUploadHelper extends Helper
             'default_css'                    => true,
             'display_progress'               => true,
             'hide_progressbar_after_upload'  => true,
-            
+
             'add'                            => null,
             'done'                           => null,
             'fail'                           => null,
             'always'                         => null,
             'upload_success_callback'        => null,
-            
+
             'template'                       => null,
             'input_button_selector'          => null,
             'progress_bar_zone_selector'     => null,
             'progress_bar_selector'          => null,
             'size_uploaded_selector'         => null,
             'notification_selector'          => null,
-        ];
-        
-        $options = array_merge($default_options, $options);
-        
+        ] + $this->config();
+
+        $options += $defaults;
+
         $options['csrf_token']                 = isset($options['csrf_token'])                 ? $options['csrf_token']                 : $this->request->param('_csrfToken');
         $options['input_button_selector']      = isset($options['input_button_selector'])      ? $options['input_button_selector']      : '#' . $upload_id . ' input[type=file]';
         $options['progress_bar_zone_selector'] = isset($options['progress_bar_zone_selector']) ? $options['progress_bar_zone_selector'] : '#' . $upload_id . ' .progress-bar-zone';
         $options['progress_bar_selector']      = isset($options['progress_bar_selector'])      ? $options['progress_bar_selector']      : '#' . $upload_id . ' .progress';
         $options['size_uploaded_selector']     = isset($options['size_uploaded_selector'])     ? $options['size_uploaded_selector']     : '#' . $upload_id . ' .size';
         $options['notification_selector']      = isset($options['notification_selector'])      ? $options['notification_selector']      : '#' . $upload_id . '_notification';
-        
+
         /*************************/
-        
-        if($options['default_js'])
-        {
-            $this->Html->script('CakephpBlueimpUpload.blueimp-jquery-file-upload/js/vendor/jquery.ui.widget', ['block' => true]);
-            $this->Html->script('CakephpBlueimpUpload.blueimp-jquery-file-upload/js/jquery.iframe-transport', ['block' => true]);
-            $this->Html->script('CakephpBlueimpUpload.blueimp-jquery-file-upload/js/jquery.fileupload', ['block' => true]);
-            $this->Html->script('CakephpBlueimpUpload.chunked', ['block' => true]);
+
+        if ($options['default_js']) {
+            $this->Html->script('CakephpBlueimpUpload.blueimp-jquery-file-upload/js/vendor/jquery.ui.widget', ['block' => $options['block']]);
+            $this->Html->script('CakephpBlueimpUpload.blueimp-jquery-file-upload/js/jquery.iframe-transport', ['block' => $options['block']]);
+            $this->Html->script('CakephpBlueimpUpload.blueimp-jquery-file-upload/js/jquery.fileupload', ['block' => $options['block']]);
+			$this->Html->script('CakephpBlueimpUpload.blueimp-jquery-file-upload/js/jquery.fileupload-process', ['block' => $options['block']]);
+			$this->Html->script('CakephpBlueimpUpload.blueimp-jquery-file-upload/js/jquery.fileupload-image', ['block' => $options['block']]);
+            $this->Html->script('CakephpBlueimpUpload.chunked', ['block' => $options['block']]);
         }
-        
-        if($options['default_css'])
-        {
-            $this->Html->css('CakephpBlueimpUpload.default', ['block' => true]);
+
+        if ($options['default_css']) {
+            $this->Html->css('CakephpBlueimpUpload.default', ['block' => $options['block']]);
         }
-        
-        if(!isset($options['template']))
-        {
+
+        if (!isset($options['template'])) {
             $template   = [];
             $template[] = '<div id="{upload-id}">';
             $template[] = '';
@@ -105,159 +106,159 @@ class BlueimpUploadHelper extends Helper
             $template[] = '    </div>';
             $template[] = '';
             $template[] = '</div>';
-            
+
             $options['template'] = implode("\n", $template);
         }
-        
+
         /*************************/
-        
+
         $html = $options['template'];
         $html = str_ireplace('{upload-id}',       $upload_id,                   $html);
         $html = str_ireplace('{notification-id}', $upload_id . '_notification', $html);
         $html = str_ireplace('{input_file_text}', $options['input_file_text'],  $html);
         $html = str_ireplace('{data-url}',        $options['upload_url'],       $html);
-        
+
         /*************************/
-        
-        $js   = [];
-        $js[] = '$(document).ready(function(){';
-        $js[] = '    ';
-        $js[] = '    var options = {';
-        $js[] = '        "input_button_selector" : "' . $options['input_button_selector'] .'",';
-        $js[] = '        "maxChunkSize"          : ' . $options['max_chunk_size'] . ',';
-        $js[] = '        "sequentialUploads"     : true,';
-        $js[] = '        "dataType"              : "json",';
-        $js[] = '        "progress_bar_selector" : "' . $options['progress_bar_selector'] . '",';
-        $js[] = '        "display_progress"      : ' . ($options['display_progress'] ? 'true' : 'false');
-        $js[] = '    }';
-        $js[] = '    ';
-        
+
+        $script   = [];
+        $script[] = '$(document).ready(function(){';
+        $script[] = '    ';
+        $script[] = '    var options = {';
+        $script[] = '        "input_button_selector" : "' . $options['input_button_selector'] .'",';
+        $script[] = '        "maxChunkSize"          : ' . $options['max_chunk_size'] . ',';
+        $script[] = '        "sequentialUploads"     : true,';
+        $script[] = '        "dataType"              : "json",';
+        $script[] = '        "progress_bar_selector" : "' . $options['progress_bar_selector'] . '",';
+        $script[] = '        "display_progress"      : ' . ($options['display_progress'] ? 'true' : 'false');
+        $script[] = '    }';
+        $script[] = '    ';
+
         /**
          * 'add' callback
          */
-        
+
         if(!isset($options['add']))
         {
-            $js[] = '    options["add"] = function(e, data){';
-            $js[] = '        ';
-            $js[] = '        if(typeof(data.headers) == "undefined"){';
-            $js[] = '            data.headers = {}';
-            $js[] = '        }';
-            $js[] = '        ';
-            $js[] = '        data.headers["X-Upload-id"] = ChunkedFileUpload.generate_upload_id();';
-            
+            $script[] = '    options["add"] = function(e, data){';
+            $script[] = '        ';
+            $script[] = '        if(typeof(data.headers) == "undefined"){';
+            $script[] = '            data.headers = {}';
+            $script[] = '        }';
+            $script[] = '        ';
+            $script[] = '        data.headers["X-Upload-id"] = ChunkedFileUpload.generate_upload_id();';
+
             if(isset($options['csrf_token']))
             {
-                $js[] = '        data.headers["X-CSRF-Token"] = "' . $options['csrf_token'] . '";';
+                $script[] = '        data.headers["X-CSRF-Token"] = "' . $options['csrf_token'] . '";';
             }
-            
-            $js[] = '        ';
+
+            $script[] = '        ';
             if($options['display_progress'])
             {
-                $js[] = '        ChunkedFileUpload.resetProgressBar("' . $options['progress_bar_selector'] . '", "' . $options['size_uploaded_selector'] . '")';
-                $js[] = '        ChunkedFileUpload.showProgressBar("' . $options['progress_bar_zone_selector'] . '");';
+                $script[] = '        ChunkedFileUpload.resetProgressBar("' . $options['progress_bar_selector'] . '", "' . $options['size_uploaded_selector'] . '")';
+                $script[] = '        ChunkedFileUpload.showProgressBar("' . $options['progress_bar_zone_selector'] . '");';
             }
-            
-            $js[] = '        ChunkedFileUpload.hideNotification("' . $options['notification_selector'] . '");';
-            $js[] = '        ';
-            $js[] = '        data.submit();';
-            $js[] = '    };';
+
+            $script[] = '        ChunkedFileUpload.hideNotification("' . $options['notification_selector'] . '");';
+            $script[] = '        ';
+            $script[] = '        data.submit();';
+            $script[] = '    };';
         }
         else
         {
-            $js[] = '    options["add"] = ' . $options['add'];
+            $script[] = '    options["add"] = ' . $options['add'];
         }
-        
+
         /***
          * 'progressall' callback
          */
-        
-        $js[] = '';
+
+        $script[] = '';
         if(!isset($options['progressall']))
         {
-            $js[] = '    options["progressall"] = function(e, data){';
-            $js[] = '        ';
-            
+            $script[] = '    options["progressall"] = function(e, data){';
+            $script[] = '        ';
+
             if($options['display_progress'])
             {
-                $js[] = '        ChunkedFileUpload.setBarData(data, "' . $options['progress_bar_selector'] . '", "' . $options['size_uploaded_selector'] . '");';
-                $js[] = '        ';
+                $script[] = '        ChunkedFileUpload.setBarData(data, "' . $options['progress_bar_selector'] . '", "' . $options['size_uploaded_selector'] . '");';
+                $script[] = '        ';
             }
-            
-            $js[] = '        if(data.loaded == data.total)';
-            $js[] = '        {';
-            
+
+            $script[] = '        if(data.loaded == data.total)';
+            $script[] = '        {';
+
                 if($options['hide_progressbar_after_upload'])
                 {
-                    $js[] = '            $("' . $options['progress_bar_zone_selector'] . '").fadeOut(200, function(){';
-                    $js[] = '                ChunkedFileUpload.showSuccessMessage("' . $options['notification_selector'] . '", "' . $options['progress_bar_zone_selector'] . '", "' . str_replace('"', '\"', $options['success_message']) . '");';
-                    $js[] = '            });';
+                    $script[] = '            $("' . $options['progress_bar_zone_selector'] . '").fadeOut(200, function(){';
+                    $script[] = '                ChunkedFileUpload.showSuccessMessage("' . $options['notification_selector'] . '", "' . $options['progress_bar_zone_selector'] . '", "' . str_replace('"', '\"', $options['success_message']) . '");';
+                    $script[] = '            });';
                 }
-                else 
+                else
                 {
-                    $js[] = '            ChunkedFileUpload.showSuccessMessage("' . $options['notification_selector'] . '", "' . $options['progress_bar_zone_selector'] . '", "' . str_replace('"', '\"', $options['success_message']) . '");';
+                    $script[] = '            ChunkedFileUpload.showSuccessMessage("' . $options['notification_selector'] . '", "' . $options['progress_bar_zone_selector'] . '", "' . str_replace('"', '\"', $options['success_message']) . '");';
                 }
-            
+
             if(isset($options['upload_success_callback']))
             {
-                $js[] = '            ';
-                $js[] = '            ' . $options['upload_success_callback'] . '(e, data);';
+                $script[] = '            ';
+                $script[] = '            ' . $options['upload_success_callback'] . '(e, data);';
             }
-            
-            $js[] = '        }';
-            $js[] = '    };';
+
+            $script[] = '        }';
+            $script[] = '    };';
         }
         else
         {
-            $js[] = '    options["progressall"] = ' . $options['progressall'];
+            $script[] = '    options["progressall"] = ' . $options['progressall'];
         }
-        
+
         /***
          * 'done' callback
          */
-        
-        $js[] = '';
-        
+
+        $script[] = '';
+
         if(isset($options['done']))
         {
-            $js[] = '    options["done"] = ' . $options['done'];
+            $script[] = '    options["done"] = ' . $options['done'];
         }
-        
+
         /**
          * 'fail' callback
          */
-         
-        $js[] = '';
-         
+
+        $script[] = '';
+
         if(isset($options['fail']))
         {
-            $js[] = '    options["fail"] = ' . $options['fail'];
+            $script[] = '    options["fail"] = ' . $options['fail'];
         }
-        
+
         /**
          * 'always' callback
          */
-        
-        $js[] = '';
-        
+
+        $script[] = '';
+
         if(isset($options['always']))
         {
-            $js[] = '    options["always"] = ' . $options['always'];
+            $script[] = '    options["always"] = ' . $options['always'];
         }
-        
+
         /***/
-        
-        $js[] = '';
-        $js[] = '    ChunkedFileUpload.initialize(options);';
-        $js[] = '});';
-        
-        
+
+        $script[] = '';
+        $script[] = '    ChunkedFileUpload.initialize(options);';
+        $script[] = '});';
+
         /*************************/
-        
-        $content   = [];
-        $content[] = $html;
-        $content[] = $this->Html->scriptBlock(implode("\n", $js));
-        
-        return implode("\n", $content);
+
+        $script = $this->Html->scriptBlock(implode("\n", $script), ['block' => $options['block']]);
+		if ($options['block'] === false) {
+			$html .= PHP_EOL . $script;
+		}
+
+        return $html;
     }
 }
